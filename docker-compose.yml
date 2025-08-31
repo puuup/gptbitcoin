@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  trader:
+    build: .
+    container_name: gptbitcoin-trader
+    restart: unless-stopped
+    environment:
+      TZ: "Asia/Seoul"
+      CHROME_FLAGS: "--disable-logging --log-level=3"
+    env_file:
+      - .env
+    volumes:
+      # 스크린샷과 DB를 호스트에 영속화
+      - ./screenshots:/app/screenshots
+      - ./data/trading_history.db:/app/trading_history.db
+    command: ["python", "autotrade.py"]
+
+  dashboard:
+    build: .
+    container_name: gptbitcoin-dashboard
+    restart: unless-stopped
+    environment:
+      TZ: "Asia/Seoul"
+    # trader 컨테이너와 동일한 DB/스크린샷 공유
+    env_file:
+      - .env
+    volumes:
+      - ./screenshots:/app/screenshots
+      - ./data/trading_history.db:/app/trading_history.db
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "streamlit-app.py", "--server.port=8501", "--server.address=0.0.0.0"]
