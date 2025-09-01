@@ -6,6 +6,8 @@ import pyupbit
 import pandas as pd
 import requests
 import sqlite3
+import shutil
+import sys
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -45,7 +47,6 @@ XPATH_TIME_OPTION_1H = "/html/body/div[1]/div[2]/div[3]/span/div/div/div[1]/div/
 XPATH_INDICATOR_BUTTON = "/html/body/div[1]/div[2]/div[3]/span/div/div/div[1]/div/div/cq-menu[3]/span"
 XPATH_BB_OPTION = "/html/body/div[1]/div[2]/div[3]/span/div/div/div[1]/div/div/cq-menu[3]/cq-menu-dropdown/cq-scroll/cq-studies/cq-studies-content/cq-item[14]"
 
-# --- Small shared helpers ---
 def _safe_click(driver, xpath, timeout=20, sleep_after=0.6):
     el = WebDriverWait(driver, timeout).until(
         EC.element_to_be_clickable((By.XPATH, xpath))
@@ -109,6 +110,77 @@ def get_fng_signal(value, classification):
         return "sell"
     else:
         return "strong_sell"
+    
+def make_chrome_driver(headless: bool = True) -> webdriver.Chrome:
+    """
+    로컬(맥/윈도)과 도커(리눅스)에서 각각 적절한 브라우저 바이너리와
+    일치하는 드라이버를 자동 선택한다.
+    - 컨테이너: google-chrome-stable 또는 chromium 우선
+    - 로컬: 설치된 Chrome 자동 탐지 (mac/Windows 경로 포함)
+    """
+    from webdriver_manager.chrome import ChromeDriverManager
+    from webdriver_manager.core.os_manager import ChromeType  # webdriver-manager 4.x
+
+    def _in_docker() -> bool:
+        return os.path.exists("/.dockerenv") or os.getenv("IS_DOCKER") == "1"
+
+    # 1) 공통 옵션
+    opts = Options()
+    if headless:
+        opts.add_argument("--headless=new")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--window-size=1920,1080")
+    opts.add_argument("--hide-scrollbars")
+    opts.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+    # 2) 브라우저 바이너리 자동 탐지 (환경변수 > 도커 > 로컬)
+    chrome_bin = os.getenv("CHROME_BIN")
+
+    if not chrome_bin:
+      # 도커(리눅스) 우선 후보
+      if _in_docker():
+          for p in ("/usr/bin/google-chrome-stable", "/usr/bin/google-chrome",
+                    "/usr/bin/chromium", "/usr/bin/chromium-browser"):
+              if os.path.exists(p):
+                  chrome_bin = p
+                  break
+      # 로컬 자동 탐지
+      if not chrome_bin:
+          chrome_bin = (
+              shutil.which("google-chrome") or shutil.which("chrome")
+              or shutil.which("chromium") or shutil.which("chromium-browser")
+          )
+          # macOS 기본 경로
+          if not chrome_bin and sys.platform == "darwin":
+              mac_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+              if os.path.exists(mac_path):
+                  chrome_bin = mac_path
+          # Windows 대표 경로
+          if not chrome_bin and sys.platform.startswith("win"):
+              for p in (
+                  r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                  r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+              ):
+                  if os.path.exists(p):
+                      chrome_bin = p
+                      break
+
+    if chrome_bin:
+        opts.binary_location = chrome_bin
+
+    # 3) Chromium 여부 판정 → webdriver-manager가 맞는 드라이버 받도록
+    use_chromium = "chromium" in (os.path.basename(chrome_bin or "")).lower()
+    chrome_type = ChromeType.CHROMIUM if use_chromium else ChromeType.GOOGLE
+
+    # 4) 드라이버 준비 (우선 webdriver-manager, 실패 시 Selenium Manager)
+    try:
+        service = Service(ChromeDriverManager(chrome_type=chrome_type).install())
+        return webdriver.Chrome(service=service, options=opts)
+    except Exception:
+        # 네트워크/프록시 등으로 wd-manager 실패 시 Selenium 4.6+ 자동관리 사용
+        return webdriver.Chrome(options=opts)
 
 # --- DB Layer ---
 class DB:
@@ -775,7 +847,7 @@ class ChartCapture:
         opts.add_argument("--disable-dev-shm-usage")
         opts.add_argument("--hide-scrollbars")
         opts.add_experimental_option("excludeSwitches", ["enable-logging"])
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
+        driver = make_chrome_driver(headless=True)
         try:
             driver.get(url)
             WebDriverWait(driver, 25).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
