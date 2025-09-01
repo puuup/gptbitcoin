@@ -5,24 +5,26 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    # Selenium이 찾을 수 있도록 경로 지정
-    CHROME_BIN=/usr/bin/chromium \
-    CHROMEDRIVER=/usr/bin/chromedriver \
     # 한국 로케일/타임존(Optional)
     TZ=Asia/Seoul
 
-# 필수 시스템 패키지 + Chromium/ChromeDriver 설치
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-      chromium chromium-driver \
-      ca-certificates curl wget git \
-      fonts-liberation \
-      libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 \
-      libdrm2 libgbm1 libgtk-3-0 libnss3 \
-      libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
-      libxkbcommon0 libxrandr2 xdg-utils \
-      # Pillow가 종종 요구하는 라이브러리
-      libjpeg62-turbo zlib1g \
+# 필수 패키지 설치 (빌드도구 + curl + gpg + 글꼴 등)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    gnupg \
+    ca-certificates \
+    fonts-nanum \
+    && rm -rf /var/lib/apt/lists/*
+
+# Google Chrome 설치
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-linux-signing-keyring.gpg \
+    && chmod a+r /etc/apt/keyrings/google-linux-signing-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/google-linux-signing-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+       > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
 # 작업 디렉토리
