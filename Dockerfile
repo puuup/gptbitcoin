@@ -28,7 +28,8 @@ RUN apt-get update && apt-get upgrade -y && \
 # 작업 디렉토리
 WORKDIR /gptbitcoin
 
-RUN pip install --upgrade pip && pip install -r /gptbitcoin/requirements.txt
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # 앱 소스 복사
 COPY . /gptbitcoin
