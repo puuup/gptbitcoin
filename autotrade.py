@@ -1293,35 +1293,35 @@ def ai_trading():
     cap = ChartCapture()
     dai = DecisionAI()
 
-    # Data
-    df_daily, df_hourly = md.get_ohlcv()
-    df_daily_i = md.add_indicators(df_daily.copy()) if df_daily is not None else None
-    df_hourly_i = md.add_indicators(df_hourly.copy()) if df_hourly is not None else None
-    daily_a = md.analyze_indicators(df_daily_i, "daily")
-    hourly_a = md.analyze_indicators(df_hourly_i, "hourly")
+    # # Data
+    # df_daily, df_hourly = md.get_ohlcv()
+    # df_daily_i = md.add_indicators(df_daily.copy()) if df_daily is not None else None
+    # df_hourly_i = md.add_indicators(df_hourly.copy()) if df_hourly is not None else None
+    # daily_a = md.analyze_indicators(df_daily_i, "daily")
+    # hourly_a = md.analyze_indicators(df_hourly_i, "hourly")
 
-    # External signals
-    fear_greed = ex.fear_greed()
-    news_data = ex.news()
+    # # External signals
+    # fear_greed = ex.fear_greed()
+    # news_data = ex.news()
 
-    yt_ids_env = os.getenv("YT_VIDEO_IDS", "").strip()
-    youtube_bundle = youtube_sent = None
-    yt_excerpt = ""
-    if yt_ids_env:
-        yt_ids = [v.strip() for v in yt_ids_env.split(",") if v.strip()]
-        if yt_ids:
-            youtube_bundle = ex.youtube_bundle(yt_ids)
-            youtube_sent = ex.youtube_sentiment(youtube_bundle.get("all_text", ""))
-            all_text = youtube_bundle.get("all_text", "")
-            yt_excerpt = all_text[:3000] if all_text else ""
+    # yt_ids_env = os.getenv("YT_VIDEO_IDS", "").strip()
+    # youtube_bundle = youtube_sent = None
+    # yt_excerpt = ""
+    # if yt_ids_env:
+    #     yt_ids = [v.strip() for v in yt_ids_env.split(",") if v.strip()]
+    #     if yt_ids:
+    #         youtube_bundle = ex.youtube_bundle(yt_ids)
+    #         youtube_sent = ex.youtube_sentiment(youtube_bundle.get("all_text", ""))
+    #         all_text = youtube_bundle.get("all_text", "")
+    #         yt_excerpt = all_text[:3000] if all_text else ""
 
-    # Upbit / balances
-    upbit = pyupbit.Upbit(os.getenv("UPBIT_ACCESS_KEY"), os.getenv("UPBIT_SECRET_KEY"))
-    my_krw, my_btc, balances, btc_avg_price, current_price, orderbook = md.balances_and_price(upbit)
-    orderbook_summary = parse_orderbook_safely(orderbook, current_price, include_totals=True)
+    # # Upbit / balances
+    # upbit = pyupbit.Upbit(os.getenv("UPBIT_ACCESS_KEY"), os.getenv("UPBIT_SECRET_KEY"))
+    # my_krw, my_btc, balances, btc_avg_price, current_price, orderbook = md.balances_and_price(upbit)
+    # orderbook_summary = parse_orderbook_safely(orderbook, current_price, include_totals=True)
 
-    total_asset, profit_rate = Reporter.print_portfolio(my_krw, my_btc, btc_avg_price, current_price)
-    db.save_portfolio(my_krw, my_btc, btc_avg_price, current_price)
+    # total_asset, profit_rate = Reporter.print_portfolio(my_krw, my_btc, btc_avg_price, current_price)
+    # db.save_portfolio(my_krw, my_btc, btc_avg_price, current_price)
 
     # Chart
     chart_path, chart_b64 = None, None
@@ -1332,92 +1332,92 @@ def ai_trading():
     except Exception as e:
         print(f"차트 캡처 실패(이미지 없이 진행): {e}")
 
-    # Build analysis payload
-    analysis_data = {
-        "current_status": {
-            "krw_balance": my_krw,
-            "btc_balance": my_btc,
-            "btc_avg_buy_price": btc_avg_price,
-            "current_btc_price": current_price,
-            "total_asset": total_asset,
-            "profit_rate": profit_rate,
-        },
-        "daily_ohlcv": df_daily.tail(10).to_dict("records") if df_daily is not None else [],
-        "hourly_ohlcv": df_hourly.tail(12).to_dict("records") if df_hourly is not None else [],
-        "daily_technical_analysis": daily_a,
-        "hourly_technical_analysis": hourly_a,
-        "fear_greed_index": fear_greed,
-        "news_analysis": news_data,
-        "youtube_transcripts": youtube_bundle,
-        "youtube_sentiment": youtube_sent,
-        "orderbook_summary": orderbook_summary,
-        "technical_indicators_latest": {
-            "daily": df_daily_i.iloc[-1].to_dict() if (df_daily_i is not None and len(df_daily_i) > 0) else {},
-            "hourly": df_hourly_i.iloc[-1].to_dict() if (df_hourly_i is not None and len(df_hourly_i) > 0) else {},
-        },
-    }
-    analysis_json = json.dumps(analysis_data, ensure_ascii=False, default=str)
+    # # Build analysis payload
+    # analysis_data = {
+    #     "current_status": {
+    #         "krw_balance": my_krw,
+    #         "btc_balance": my_btc,
+    #         "btc_avg_buy_price": btc_avg_price,
+    #         "current_btc_price": current_price,
+    #         "total_asset": total_asset,
+    #         "profit_rate": profit_rate,
+    #     },
+    #     "daily_ohlcv": df_daily.tail(10).to_dict("records") if df_daily is not None else [],
+    #     "hourly_ohlcv": df_hourly.tail(12).to_dict("records") if df_hourly is not None else [],
+    #     "daily_technical_analysis": daily_a,
+    #     "hourly_technical_analysis": hourly_a,
+    #     "fear_greed_index": fear_greed,
+    #     "news_analysis": news_data,
+    #     "youtube_transcripts": youtube_bundle,
+    #     "youtube_sentiment": youtube_sent,
+    #     "orderbook_summary": orderbook_summary,
+    #     "technical_indicators_latest": {
+    #         "daily": df_daily_i.iloc[-1].to_dict() if (df_daily_i is not None and len(df_daily_i) > 0) else {},
+    #         "hourly": df_hourly_i.iloc[-1].to_dict() if (df_hourly_i is not None and len(df_hourly_i) > 0) else {},
+    #     },
+    # }
+    # analysis_json = json.dumps(analysis_data, ensure_ascii=False, default=str)
 
-    # --- 회고/반성: 최근 성과 평가 및 교훈 생성/로드 ---
-    # 1) 새로 평가해서 저장하면서 텍스트 받기
-    reflection_text_new = ReflectionEngine.run_and_get_lessons(db, horizon_hours=6, lookback=40, save=True)
+    # # --- 회고/반성: 최근 성과 평가 및 교훈 생성/로드 ---
+    # # 1) 새로 평가해서 저장하면서 텍스트 받기
+    # reflection_text_new = ReflectionEngine.run_and_get_lessons(db, horizon_hours=6, lookback=40, save=True)
 
-    # 2) 최근 저장된 회고들에서 텍스트 합성(중복 제거/길이 제한)
-    reflection_text_recent = db.get_recent_lessons_text(max_items=6, max_chars=800)
+    # # 2) 최근 저장된 회고들에서 텍스트 합성(중복 제거/길이 제한)
+    # reflection_text_recent = db.get_recent_lessons_text(max_items=6, max_chars=800)
 
-    # 우선순위: 방금 생성한 텍스트가 있으면 그걸, 없으면 누적 텍스트
-    reflection_text = reflection_text_new or reflection_text_recent
+    # # 우선순위: 방금 생성한 텍스트가 있으면 그걸, 없으면 누적 텍스트
+    # reflection_text = reflection_text_new or reflection_text_recent
 
-    print("\n=== 회고/반성 규칙 ===")
-    print(reflection_text if reflection_text else "(없음)")
+    # print("\n=== 회고/반성 규칙 ===")
+    # print(reflection_text if reflection_text else "(없음)")
 
-    print("AI 분석 중...")
-    user_content = dai.build_user_content(analysis_json, yt_excerpt, chart_b64)
-    result = dai.request_decision(user_content, reflection_text=reflection_text)
+    # print("AI 분석 중...")
+    # user_content = dai.build_user_content(analysis_json, yt_excerpt, chart_b64)
+    # result = dai.request_decision(user_content, reflection_text=reflection_text)
 
-    # 회고를 적용했으므로 카운트 올리기
-    if reflection_text:
-        db.mark_lessons_applied()
+    # # 회고를 적용했으므로 카운트 올리기
+    # if reflection_text:
+    #     db.mark_lessons_applied()
 
-    # Save decision
-    record_id = db.save_decision(
-        result,
-        {
-            "current_price": current_price,
-            "krw_balance": my_krw,
-            "btc_balance": my_btc,
-            "total_asset": total_asset,
-            "profit_rate": profit_rate,
-            "fear_greed_data": fear_greed,
-        },
-    )
+    # # Save decision
+    # record_id = db.save_decision(
+    #     result,
+    #     {
+    #         "current_price": current_price,
+    #         "krw_balance": my_krw,
+    #         "btc_balance": my_btc,
+    #         "total_asset": total_asset,
+    #         "profit_rate": profit_rate,
+    #         "fear_greed_data": fear_greed,
+    #     },
+    # )
 
-    # Report
-    Reporter.print_ai_result(result, fear_greed)
+    # # Report
+    # Reporter.print_ai_result(result, fear_greed)
 
-    # Trade
-    trader = Trader(upbit, db)
-    decision = (result.get("decision") or "hold").lower()
-    percentage = float(result.get("percentage", 100))
+    # # Trade
+    # trader = Trader(upbit, db)
+    # decision = (result.get("decision") or "hold").lower()
+    # percentage = float(result.get("percentage", 100))
 
-    if decision == "buy":
-        amount = Trader.calc_amount("buy", percentage, my_krw, my_btc)
-        if Trader.validate_min("buy", amount, current_price):
-            print(f"매수 금액: {amount:,.0f}원")
-            trader.execute("buy", amount, record_id)
-    elif decision == "sell":
-        amount = Trader.calc_amount("sell", percentage, my_krw, my_btc)
-        ask = parse_orderbook_safely(orderbook, current_price)["best_ask_price"]
-        if Trader.validate_min("sell", amount, ask):
-            print(f"매도 수량: {amount:.8f} BTC")
-            print(f"예상 매도 금액: {amount * ask:,.0f}원")
-            trader.execute("sell", amount, record_id)
-    else:
-        print("\n=== 보유 결정 ===\n현재 포지션 유지")
+    # if decision == "buy":
+    #     amount = Trader.calc_amount("buy", percentage, my_krw, my_btc)
+    #     if Trader.validate_min("buy", amount, current_price):
+    #         print(f"매수 금액: {amount:,.0f}원")
+    #         trader.execute("buy", amount, record_id)
+    # elif decision == "sell":
+    #     amount = Trader.calc_amount("sell", percentage, my_krw, my_btc)
+    #     ask = parse_orderbook_safely(orderbook, current_price)["best_ask_price"]
+    #     if Trader.validate_min("sell", amount, ask):
+    #         print(f"매도 수량: {amount:.8f} BTC")
+    #         print(f"예상 매도 금액: {amount * ask:,.0f}원")
+    #         trader.execute("sell", amount, record_id)
+    # else:
+    #     print("\n=== 보유 결정 ===\n현재 포지션 유지")
 
-    # Stats
-    db.print_stats()
-    print("=" * 60)
+    # # Stats
+    # db.print_stats()
+    # print("=" * 60)
 
 
 if __name__ == "__main__":
